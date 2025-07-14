@@ -1,0 +1,281 @@
+:root {
+  --yellow: #FFD200; /* Charity Yellow */
+  --blue: #00AEEF;   /* Water Blue */
+  --aqua: #35E6E9;   /* Playful Aqua */
+  --navy: #232C39;   /* Deep Navy */
+  --white: #FAFBFC;  /* Soft White */
+  --gray: #E8EAED;   /* Light Gray */
+  --shadow: 0 4px 24px 0 rgba(35,44,57,0.10), 0 1.5px 6px 0 rgba(0,174,239,0.08);
+}
+body {
+  font-family: 'Quicksand', Arial, sans-serif;
+  background: var(--white);
+  margin: 0;
+  padding: 0;
+  color: var(--navy);
+  min-height: 100vh;
+}
+.container {
+  max-width: 1100px;
+  margin: 40px auto 32px auto;
+  background: var(--white);
+  border-radius: 32px;
+  box-shadow: var(--shadow);
+  padding: 36px 36px 40px 36px;
+  position: relative;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 16px;
+}
+.header img {
+  height: 60px;
+  width: auto;
+}
+h1 {
+  font-family: 'Fredoka', Arial, sans-serif;
+  font-size: 2.6rem;
+  color: var(--blue);
+  margin: 0;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 8px rgba(0,174,239,0.08);
+}
+.game-instructions {
+  text-align: center;
+  font-size: 1.18rem;
+  margin-bottom: 26px;
+  color: var(--navy);
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+.stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+  padding: 18px 32px;
+  background: var(--gray);
+  border-radius: 24px;
+  font-size: 1.35rem;
+  box-shadow: var(--shadow);
+  font-family: 'Fredoka', Arial, sans-serif;
+}
+.stats .score {
+  color: var(--yellow);
+  font-weight: 700;
+  font-size: 2.2rem;
+  text-shadow: 0 2px 8px rgba(255,210,0,0.10);
+  letter-spacing: 1px;
+}
+.stats .timer {
+  color: var(--blue);
+  font-weight: 700;
+  font-size: 2.4rem;
+  letter-spacing: 2px;
+  background: var(--aqua);
+  border-radius: 16px;
+  padding: 2px 18px;
+  margin-left: 10px;
+  box-shadow: 0 2px 8px rgba(53,230,233,0.10);
+}
+
+.game-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  margin: 0 auto 28px auto;
+  max-width: 520px;
+  min-height: 320px;
+  background: var(--gray);
+  border-radius: 32px;
+  box-shadow: var(--shadow);
+  padding: 24px 10px;
+}
+.grid-cell {
+  background: var(--white);
+  border-radius: 24px;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  min-width: 110px;
+  min-height: 110px;
+  transition: background 0.18s, box-shadow 0.18s;
+  overflow: visible;
+  box-shadow: 0 2px 12px rgba(35,44,57,0.08);
+}
+.can-img {
+  width: 90px;
+  height: 90px;
+  user-select: none;
+  pointer-events: none;
+  display: block;
+  filter: drop-shadow(0 2px 8px rgba(255,210,0,0.10));
+}
+
+.brick-emoji {
+  font-size: 4.2rem;
+  line-height: 1;
+  filter: grayscale(0.3) drop-shadow(0 2px 8px rgba(35,44,57,0.10));
+  pointer-events: none;
+  user-select: none;
+  display: block;
+}
+
+.grid-cell:hover {
+  background: var(--aqua);
+  box-shadow: 0 4px 18px rgba(53,230,233,0.13);
+}
+
+.grid-cell:active {
+  background: var(--yellow);
+  box-shadow: 0 2px 8px rgba(255,210,0,0.13);
+}
+
+/* Feedback pop (score/brick) */
+.feedback {
+  position: absolute;
+  left: 50%;
+  top: 10%;
+  transform: translate(-50%, 0);
+  font-size: 2.1rem;
+  font-weight: 700;
+  opacity: 0.93;
+  pointer-events: none;
+  animation: fadeUp 0.7s forwards;
+  z-index: 2;
+  color: var(--aqua);
+  text-shadow: 0 2px 8px rgba(53,230,233,0.13);
+}
+@keyframes fadeUp {
+  0% { opacity: 1; transform: translate(-50%, 0) scale(1);}
+  70% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -30px) scale(1.2);}
+}
+/* End message (win/lose) */
+.end-message {
+  text-align: center;
+  font-size: 2.3rem;
+  font-weight: 700;
+  margin: 32px 0 16px 0;
+  color: var(--aqua);
+  animation: popBadge 0.7s cubic-bezier(.17,.67,.34,2);
+  font-family: 'Fredoka', Arial, sans-serif;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 8px rgba(53,230,233,0.13);
+}
+@keyframes popBadge {
+  0% { transform: scale(0.7); opacity: 0;}
+  60% { transform: scale(1.1);}
+  100% { transform: scale(1); opacity: 1;}
+}
+.confetti {
+  pointer-events: none;
+  position: absolute;
+  left: 0; top: 0; width: 100%; height: 100%;
+  z-index: 10;
+  overflow: visible;
+  /* Playful Aqua confetti */
+}
+.reset-btn, .start-btn {
+  display: inline-block;
+  margin: 0 12px;
+  background: var(--yellow);
+  color: var(--navy);
+  border: none;
+  border-radius: 20px;
+  font-size: 1.25rem;
+  font-family: 'Fredoka', Arial, sans-serif;
+  font-weight: 700;
+  padding: 16px 38px;
+  cursor: pointer;
+  transition: background 0.18s, box-shadow 0.18s;
+  box-shadow: var(--shadow);
+  letter-spacing: 0.5px;
+}
+.reset-btn:hover, .start-btn:hover {
+  background: var(--aqua);
+  color: var(--navy);
+  box-shadow: 0 4px 18px rgba(53,230,233,0.13);
+}
+.footer {
+  text-align: center;
+  margin-top: 36px;
+  font-size: 1.05rem;
+  color: var(--navy);
+  opacity: 0.7;
+  letter-spacing: 0.2px;
+}
+.footer img {
+  height: 36px;
+  vertical-align: middle;
+  margin-right: 10px;
+}
+
+@media (min-width: 700px) {
+  .game-grid {
+    grid-template-columns: repeat(5, 1fr);
+    max-width: 900px;
+    min-height: 380px;
+    gap: 32px;
+    padding: 32px 18px;
+  }
+  .grid-cell {
+    min-width: 140px;
+    min-height: 140px;
+    border-radius: 32px;
+  }
+  .can-img {
+    width: 120px;
+    height: 120px;
+  }
+  .brick-emoji {
+    font-size: 5.2rem;
+  }
+}
+
+@media (max-width: 500px) {
+  .container {
+    padding: 8px 2px 18px 2px;
+    border-radius: 16px;
+  }
+  .game-grid {
+    gap: 10px;
+    padding: 10px 2px;
+    min-height: 180px;
+  }
+  .grid-cell {
+    min-width: 60px;
+    min-height: 60px;
+    border-radius: 12px;
+  }
+  .can-img {
+    width: 44px;
+    height: 44px;
+  }
+  .brick-emoji {
+    font-size: 2.2rem;
+  }
+  .stats {
+    padding: 10px 8px;
+    font-size: 1.05rem;
+    border-radius: 12px;
+  }
+  .reset-btn, .start-btn {
+    font-size: 1.05rem;
+    padding: 10px 18px;
+    border-radius: 12px;
+  }
+  .end-message {
+    font-size: 1.3rem;
+    margin: 18px 0 8px 0;
+  }
+}
+}
