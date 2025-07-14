@@ -44,6 +44,47 @@ h1 {
   letter-spacing: 1px;
   text-shadow: 0 2px 8px rgba(0,174,239,0.08);
 }
+.difficulty-selector {
+  text-align: center;
+  margin-bottom: 20px;
+}
+.difficulty-selector h3 {
+  font-family: 'Fredoka', Arial, sans-serif;
+  font-size: 1.4rem;
+  color: var(--navy);
+  margin: 0 0 12px 0;
+  font-weight: 600;
+}
+.difficulty-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.difficulty-btn {
+  background: var(--gray);
+  color: var(--navy);
+  border: 2px solid transparent;
+  border-radius: 16px;
+  font-size: 1.1rem;
+  font-family: 'Quicksand', Arial, sans-serif;
+  font-weight: 600;
+  padding: 10px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  min-width: 80px;
+}
+.difficulty-btn:hover {
+  background: var(--aqua);
+  color: var(--navy);
+  box-shadow: 0 2px 12px rgba(53,230,233,0.15);
+}
+.difficulty-btn.active {
+  background: var(--yellow);
+  color: var(--navy);
+  border-color: var(--blue);
+  box-shadow: 0 2px 12px rgba(255,210,0,0.2);
+}
 .game-instructions {
   text-align: center;
   font-size: 1.18rem;
@@ -277,5 +318,13 @@ h1 {
     font-size: 1.3rem;
     margin: 18px 0 8px 0;
   }
+  .difficulty-selector h3 {
+    font-size: 1.2rem;
+  }
+  .difficulty-btn {
+    font-size: 1rem;
+    padding: 8px 16px;
+    min-width: 70px;
+  }
 }
-}
+

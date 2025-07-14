@@ -6,10 +6,39 @@ const endMsgEl = document.getElementById('end-message');
 const startBtn = document.getElementById('start-btn');
 const resetBtn = document.getElementById('reset-btn');
 const confettiCanvas = document.getElementById('confetti-canvas');
+const instructionsEl = document.getElementById('instructions-text');
 
 // Placeholder images (replace with your own if desired)
 const JERRY_CAN_IMG = "img/water-can-transparent.png"; // yellow jerry can
 const BRICK_EMOJI = "🧱"; // distinctive brick emoji
+
+// Difficulty settings
+const DIFFICULTY_SETTINGS = {
+  easy: {
+    winScore: 15,
+    timeLimit: 45,
+    spawnIntervalMin: 1000,
+    spawnIntervalMax: 1800,
+    brickChance: 0.15, // 15% chance for brick
+    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br>Score 15+ in 45 seconds to win."
+  },
+  normal: {
+    winScore: 20,
+    timeLimit: 30,
+    spawnIntervalMin: 800,
+    spawnIntervalMax: 1600,
+    brickChance: 0.20, // 20% chance for brick
+    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br>Score 20+ in 30 seconds to win."
+  },
+  hard: {
+    winScore: 25,
+    timeLimit: 20,
+    spawnIntervalMin: 600,
+    spawnIntervalMax: 1200,
+    brickChance: 0.30, // 30% chance for brick
+    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br>Score 25+ in 20 seconds to win."
+  }
+};
 
 // Winning and losing message
 const WIN_MSGS = [
@@ -34,6 +63,7 @@ let timer = 30;
 let gameActive = false;
 let spawnInterval = null;
 let timerInterval = null;
+let currentDifficulty = 'easy';
 
 // --- Responsive grid setup ---
 function updateGridSize() {
@@ -75,8 +105,9 @@ function spawnItems() {
   const randomIdx = Math.floor(Math.random() * totalCells);
   const cell = grid.children[randomIdx];
 
-  // Randomly choose between good jerry can (80% chance) or brick (20% chance)
-  const isGood = Math.random() < 0.8;
+  // Use difficulty-based brick chance
+  const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+  const isGood = Math.random() > settings.brickChance;
 
   if (isGood) {
     cell.innerHTML = `<img src="${JERRY_CAN_IMG}" alt="Jerry Can" class="can-img" draggable="false">`;
@@ -128,8 +159,10 @@ function onCellClick(e) {
 // --- Start game ---
 function startGame() {
   updateGridSize();
+  const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+  
   score = 0;
-  timer = 30;
+  timer = settings.timeLimit;
   scoreEl.textContent = score;
   timerEl.textContent = timer;
   endMsgEl.textContent = '';
@@ -143,13 +176,17 @@ function startGame() {
   resetBtn.style.display = '';
   spawnItems();
   
-  // Spawn new items at random intervals between 400-800ms (faster whack-a-mole style)
+  // Spawn new items at difficulty-based intervals
   function nextSpawn() {
     if (!gameActive) return;
     spawnItems();
-    spawnInterval = setTimeout(nextSpawn, 800 + Math.random() * 800);
+    const minInterval = settings.spawnIntervalMin;
+    const maxInterval = settings.spawnIntervalMax;
+    const randomInterval = minInterval + Math.random() * (maxInterval - minInterval);
+    spawnInterval = setTimeout(nextSpawn, randomInterval);
   }
   spawnInterval = setTimeout(nextSpawn, 700);
+  
   // Timer countdown
   timerInterval = setInterval(() => {
     timer--;
@@ -168,8 +205,10 @@ function endGame() {
   Array.from(grid.children).forEach(cell => {
     cell.removeEventListener('click', onCellClick);
   });
-  // Show end message
-  if (score >= 20) {
+  
+  // Check win condition based on difficulty
+  const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+  if (score >= settings.winScore) {
     const msg = WIN_MSGS[Math.floor(Math.random() * WIN_MSGS.length)];
     endMsgEl.innerHTML = `<div class="end-message">${msg}</div>`;
     showConfetti();
@@ -183,8 +222,10 @@ function endGame() {
 function resetGame() {
   clearTimeout(spawnInterval);
   clearInterval(timerInterval);
+  const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+  
   score = 0;
-  timer = 30;
+  timer = settings.timeLimit;
   scoreEl.textContent = score;
   timerEl.textContent = timer;
   endMsgEl.textContent = '';
@@ -243,6 +284,31 @@ function showConfetti() {
 startBtn.addEventListener('click', startGame);
 resetBtn.addEventListener('click', resetGame);
 
+// Difficulty selection
+document.querySelectorAll('.difficulty-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    // Remove active class from all buttons
+    document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+    
+    // Add active class to clicked button
+    e.target.classList.add('active');
+    
+    // Update current difficulty
+    currentDifficulty = e.target.dataset.difficulty;
+    
+    // Update instructions
+    const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+    instructionsEl.innerHTML = settings.instructions;
+    
+    // Update timer display if game not active
+    if (!gameActive) {
+      timerEl.textContent = settings.timeLimit;
+    }
+  });
+});
+
 // --- Initial setup ---
 updateGridSize();
 createGrid();
+// Set initial instructions
+instructionsEl.innerHTML = DIFFICULTY_SETTINGS[currentDifficulty].instructions;
