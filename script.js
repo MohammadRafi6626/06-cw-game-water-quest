@@ -1,4 +1,9 @@
-// --- Game variables ---
+// ========================================
+// charity: water - Water Quest Game
+// Enhanced Mobile-First JavaScript
+// ========================================
+
+// --- Game DOM Elements ---
 const grid = document.getElementById('game-grid');
 const scoreEl = document.getElementById('score');
 const timerEl = document.getElementById('timer');
@@ -8,54 +13,59 @@ const resetBtn = document.getElementById('reset-btn');
 const confettiCanvas = document.getElementById('confetti-canvas');
 const instructionsEl = document.getElementById('instructions-text');
 
-// Placeholder images (replace with your own if desired)
-const JERRY_CAN_IMG = "img/water-can-transparent.png"; // yellow jerry can
-const BRICK_EMOJI = "🧱"; // distinctive brick emoji
+// Game Assets
+const JERRY_CAN_IMG = "img/water-can-transparent.png";
+const BRICK_EMOJI = "🧱";
 
-// Difficulty settings
+// Enhanced Difficulty Settings
 const DIFFICULTY_SETTINGS = {
   easy: {
     winScore: 15,
     timeLimit: 45,
-    spawnIntervalMin: 1000,
-    spawnIntervalMax: 1800,
-    brickChance: 0.15, // 15% chance for brick
-    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br>Score 15+ in 45 seconds to win."
+    spawnIntervalMin: 1200,
+    spawnIntervalMax: 2000,
+    brickChance: 0.15,
+    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br><strong>Score 15+ in 45 seconds to win.</strong>"
   },
   normal: {
     winScore: 20,
     timeLimit: 30,
-    spawnIntervalMin: 800,
-    spawnIntervalMax: 1600,
-    brickChance: 0.20, // 20% chance for brick
-    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br>Score 20+ in 30 seconds to win."
+    spawnIntervalMin: 900,
+    spawnIntervalMax: 1700,
+    brickChance: 0.20,
+    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br><strong>Score 20+ in 30 seconds to win.</strong>"
   },
   hard: {
     winScore: 25,
     timeLimit: 20,
-    spawnIntervalMin: 600,
-    spawnIntervalMax: 1200,
-    brickChance: 0.30, // 30% chance for brick
-    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br>Score 25+ in 20 seconds to win."
+    spawnIntervalMin: 700,
+    spawnIntervalMax: 1300,
+    brickChance: 0.30,
+    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br><strong>Score 25+ in 20 seconds to win.</strong>"
   }
 };
 
-// Winning and losing message
+// Enhanced Messages
 const WIN_MSGS = [
-  "You made a difference!",
-  "Clean water for all!",
-  "Amazing! You did it!",
-  "You're a water hero!"
-];
-const LOSE_MSGS = [
-  "Try again for a better score!",
-  "Almost there, give it another go!",
-  "Don't give up!",
-  "Keep practicing!"
+  "🎉 You made a difference!",
+  "💧 Clean water for all!",
+  "⭐ Amazing! You did it!",
+  "🏆 You're a water hero!",
+  "✨ Outstanding impact!",
+  "🌟 Mission accomplished!"
 ];
 
-// --- Game state ---
-let cols = 3; // columns (3 on mobile, 5 on desktop)
+const LOSE_MSGS = [
+  "💪 Try again for a better score!",
+  "🎯 Almost there, give it another go!",
+  "🔄 Don't give up!",
+  "📈 Keep practicing!",
+  "🚀 You're getting closer!",
+  "💯 One more try!"
+];
+
+// --- Game State ---
+let cols = 3;
 let rows = 3;
 let totalCells = 9;
 let score = 0;
@@ -64,240 +74,469 @@ let gameActive = false;
 let spawnInterval = null;
 let timerInterval = null;
 let currentDifficulty = 'easy';
+let gameStartTime = 0;
+let totalClicks = 0;
+let hitStreak = 0;
+let maxStreak = 0;
 
-// --- Responsive grid setup ---
-function updateGridSize() {
-  if (window.innerWidth >= 700) {
+// --- Preload Audio Assets (Lazy Loading) ---
+const audioAssets = {};
+let audioLoaded = false;
+
+const initAudio = () => {
+  if (audioLoaded) return;
+  audioAssets.pop = new Audio('sounds/bubble-pop-05-323639.mp3');
+  audioAssets.wrong = new Audio('sounds/wrong-47985.mp3');
+  audioAssets.chime = new Audio('sounds/chime-alert-demo-309545.mp3');
+  
+  // Set volumes
+  audioAssets.pop.volume = 0.32;
+  audioAssets.wrong.volume = 0.38;
+  audioAssets.chime.volume = 0.42;
+  
+  audioLoaded = true;
+};
+
+const playSound = (type) => {
+  if (!audioLoaded) return;
+  
+  try {
+    if (type === 'success' && audioAssets.pop) {
+      const s = audioAssets.pop.cloneNode();
+      s.volume = audioAssets.pop.volume;
+      s.play().catch(() => {}); // Silent fail
+    } else if (type === 'error' && audioAssets.wrong) {
+      const s = audioAssets.wrong.cloneNode();
+      s.volume = audioAssets.wrong.volume;
+      s.play().catch(() => {});
+    } else if ((type === 'win' || type === 'streak') && audioAssets.chime) {
+      const s = audioAssets.chime.cloneNode();
+      s.volume = audioAssets.chime.volume;
+      s.play().catch(() => {});
+    }
+  } catch (e) {
+    // Silent fail
+  }
+};
+
+// --- Enhanced Responsive Grid Setup ---
+const updateGridSize = () => {
+  const width = window.innerWidth;
+  if (width >= 1024) {
     cols = 5; rows = 3; totalCells = 15;
+  } else if (width >= 768) {
+    cols = 4; rows = 3; totalCells = 12;
   } else {
     cols = 3; rows = 3; totalCells = 9;
   }
-}
-window.addEventListener('resize', () => {
+  
+  // Update CSS custom property for responsive grid
+  document.documentElement.style.setProperty('--grid-cols', cols);
+};
+
+// Debounced resize handler for better performance - Optimized
+let resizeTimeout;
+const handleResize = () => {
   const prevCols = cols;
   updateGridSize();
   if (gameActive && prevCols !== cols) {
-    createGrid();
+    requestAnimationFrame(createGrid); // Use RAF for smoother updates
   }
+};
+
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(handleResize, 150); // Increased debounce time
 });
 
-// --- Create the grid cells ---
-function createGrid() {
+// --- Enhanced Grid Creation ---
+const createGrid = () => {
   grid.innerHTML = '';
+  
+  // Update grid template columns based on current cols
+  grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  
   for (let i = 0; i < totalCells; i++) {
     const cell = document.createElement('div');
     cell.className = 'grid-cell';
     cell.dataset.idx = i;
+    cell.setAttribute('role', 'button');
+    cell.setAttribute('aria-label', 'Game cell');
+    cell.setAttribute('tabindex', gameActive ? '0' : '-1');
+    
+    // Add keyboard support
+    cell.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        onCellClick(e);
+      }
+    });
+    
     grid.appendChild(cell);
   }
-}
+};
 
-// --- Spawn single item in grid (whack-a-mole style) ---
-function spawnItems() {
+// --- Enhanced Item Spawning ---
+const spawnItems = () => {
   // Clear all cells first
   Array.from(grid.children).forEach(cell => {
     cell.innerHTML = '';
     cell.dataset.type = '';
     cell.dataset.clicked = "0";
+    cell.classList.remove('has-item');
   });
 
-  // Pick a random cell
-  const randomIdx = Math.floor(Math.random() * totalCells);
-  const cell = grid.children[randomIdx];
-
-  // Use difficulty-based brick chance
+  // Spawn 1-2 items randomly based on difficulty
   const settings = DIFFICULTY_SETTINGS[currentDifficulty];
-  const isGood = Math.random() > settings.brickChance;
+  const numItems = Math.random() > 0.6 ? 2 : 1; // 40% chance for 2 items
 
-  if (isGood) {
-    cell.innerHTML = `<img src="${JERRY_CAN_IMG}" alt="Jerry Can" class="can-img" draggable="false">`;
-    cell.dataset.type = 'good';
-  } else {
-    cell.innerHTML = `<span class="brick-emoji" role="img" aria-label="brick">${BRICK_EMOJI}</span>`;
-    cell.dataset.type = 'bad';
+  
+  const usedCells = new Set();
+  
+  for (let i = 0; i < numItems && usedCells.size < totalCells; i++) {
+    let randomIdx;
+    do {
+      randomIdx = Math.floor(Math.random() * totalCells);
+    } while (usedCells.has(randomIdx));
+    
+    usedCells.add(randomIdx);
+    const cell = grid.children[randomIdx];
+    
+    const isGood = Math.random() > settings.brickChance;
+    
+    if (isGood) {
+      cell.innerHTML = `<img src="${JERRY_CAN_IMG}" alt="Jerry Can" class="can-img" draggable="false">`;
+      cell.dataset.type = 'good';
+    } else {
+      cell.innerHTML = `<span class="brick-emoji" role="img" aria-label="brick">${BRICK_EMOJI}</span>`;
+      cell.dataset.type = 'bad';
+    }
+    
+    cell.classList.add('has-item');
+    cell.setAttribute('aria-label', isGood ? 'Water can - click to score!' : 'Brick - avoid clicking!');
   }
-}
+};
 
-
-// --- Feedback effect (+1/-1) ---
-function showFeedback(cell, val) {
+// --- Enhanced Feedback System ---
+const showFeedback = (cell, val, isStreak = false) => {
   const fb = document.createElement('div');
   fb.className = 'feedback';
-  fb.textContent = val > 0 ? '+1' : '-1';
-  fb.style.color = val > 0 ? 'var(--yellow)' : 'var(--gray)';
+  
+  if (val > 0) {
+    fb.textContent = isStreak && hitStreak > 2 ? `+${val} 🔥` : `+${val}`;
+    fb.style.color = 'var(--cw-green)';
+    if (isStreak && hitStreak > 2) {
+      playSound('streak');
+    } else {
+      playSound('success');
+    }
+  } else {
+    fb.textContent = `${val}`;
+    fb.classList.add('negative');
+    fb.style.color = 'var(--cw-red)';
+    playSound('error');
+  }
+  
   cell.appendChild(fb);
-  setTimeout(() => fb.remove(), 650);
-}
+  setTimeout(() => fb.remove(), 800);
+};
 
-// --- Handle cell click ---
-function onCellClick(e) {
+// --- Enhanced Cell Click Handler ---
+const onCellClick = (e) => {
   if (!gameActive) return;
+  
   const cell = e.currentTarget;
-  if (!cell.dataset.type) return; // No item in this cell
-  if (cell.dataset.clicked === "1") return; // Prevent double click
+  if (!cell.dataset.type) return;
+  if (cell.dataset.clicked === "1") return;
   
   cell.dataset.clicked = "1";
+  totalClicks++;
+  
+  // Add visual feedback
+  cell.style.transform = 'scale(0.95)';
+  setTimeout(() => {
+    cell.style.transform = '';
+  }, 150);
   
   if (cell.dataset.type === 'good') {
-    score++;
-    showFeedback(cell, +1);
+    hitStreak++;
+    maxStreak = Math.max(maxStreak, hitStreak);
+    
+    // Bonus points for streaks
+    let points = 1;
+    if (hitStreak >= 5) points = 3;
+    else if (hitStreak >= 3) points = 2;
+    
+    score += points;
+    showFeedback(cell, points, hitStreak > 2);
   } else {
+    hitStreak = 0;
     score = Math.max(0, score - 1);
     showFeedback(cell, -1);
+    
+    // Add screen shake effect for negative feedback
+    document.body.style.animation = 'shake 0.3s ease-in-out';
+    setTimeout(() => {
+      document.body.style.animation = '';
+    }, 300);
   }
   
   scoreEl.textContent = score;
   
-  // Clear the clicked item immediately and spawn a new one after a short delay
+  // Clear the clicked item immediately
   setTimeout(() => {
     cell.innerHTML = '';
     cell.dataset.type = '';
     cell.dataset.clicked = "0";
+    cell.classList.remove('has-item');
+    cell.setAttribute('aria-label', 'Game cell');
   }, 200);
-}
+};
 
-// --- Start game ---
-function startGame() {
+// --- Enhanced Game Start ---
+const startGame = () => {
+  initAudio(); // Initialize audio only when needed
   updateGridSize();
   const settings = DIFFICULTY_SETTINGS[currentDifficulty];
   
+  // Reset game state
   score = 0;
   timer = settings.timeLimit;
-  scoreEl.textContent = score;
-  timerEl.textContent = timer;
-  endMsgEl.textContent = '';
-  confettiCanvas.style.display = 'none';
-  createGrid();
-  Array.from(grid.children).forEach(cell => {
-    cell.addEventListener('click', onCellClick);
-  });
-  gameActive = true;
-  startBtn.style.display = 'none';
-  resetBtn.style.display = '';
-  spawnItems();
+  totalClicks = 0;
+  hitStreak = 0;
+  maxStreak = 0;
+  gameStartTime = Date.now();
   
-  // Spawn new items at difficulty-based intervals
-  function nextSpawn() {
+  // Batch DOM updates for better performance
+  requestAnimationFrame(() => {
+    scoreEl.textContent = score;
+    timerEl.textContent = timer;
+    endMsgEl.innerHTML = '';
+    confettiCanvas.style.display = 'none';
+    
+    // Setup grid
+    createGrid();
+    Array.from(grid.children).forEach(cell => {
+      cell.addEventListener('click', onCellClick);
+      cell.setAttribute('tabindex', '0');
+    });
+    
+    // Update button states
+    startBtn.style.display = 'none';
+    resetBtn.style.display = 'inline-block';
+    
+    // Add visual indicator that game is active
+    document.body.classList.add('game-active');
+    
+    gameActive = true;
+    
+    // Start spawning
+    spawnItems();
+  });
+  
+  // Enhanced spawn timing
+  const nextSpawn = () => {
     if (!gameActive) return;
     spawnItems();
     const minInterval = settings.spawnIntervalMin;
     const maxInterval = settings.spawnIntervalMax;
     const randomInterval = minInterval + Math.random() * (maxInterval - minInterval);
     spawnInterval = setTimeout(nextSpawn, randomInterval);
-  }
-  spawnInterval = setTimeout(nextSpawn, 700);
+  };
   
-  // Timer countdown
+  spawnInterval = setTimeout(nextSpawn, 1000);
+  
+  // Enhanced timer with visual feedback
   timerInterval = setInterval(() => {
     timer--;
     timerEl.textContent = timer;
+    
+    // Visual warning when time is running out
+    if (timer <= 10) {
+      timerEl.style.color = 'var(--cw-red)';
+      timerEl.style.animation = 'pulse 0.5s ease-in-out infinite';
+    } else if (timer <= 20) {
+      timerEl.style.color = 'var(--cw-orange)';
+    }
+    
     if (timer <= 0) {
       endGame();
     }
   }, 1000);
-}
+};
 
-// --- End game ---
-function endGame() {
+// --- Enhanced Game End ---
+const endGame = () => {
   gameActive = false;
+  document.body.classList.remove('game-active');
+  
   clearTimeout(spawnInterval);
   clearInterval(timerInterval);
+  
+  // Reset timer styling
+  timerEl.style.color = '';
+  timerEl.style.animation = '';
+  
+  // Remove event listeners and make cells non-interactive
   Array.from(grid.children).forEach(cell => {
     cell.removeEventListener('click', onCellClick);
+    cell.setAttribute('tabindex', '-1');
   });
   
-  // Check win condition based on difficulty
+  // Calculate game stats
+  const gameTime = (Date.now() - gameStartTime) / 1000;
+  const accuracy = totalClicks > 0 ? Math.round((score / totalClicks) * 100) : 0;
+  
+  // Check win condition
   const settings = DIFFICULTY_SETTINGS[currentDifficulty];
-  if (score >= settings.winScore) {
+  const isWin = score >= settings.winScore;
+  
+  if (isWin) {
     const msg = WIN_MSGS[Math.floor(Math.random() * WIN_MSGS.length)];
-    endMsgEl.innerHTML = `<div class="end-message">${msg}</div>`;
+    endMsgEl.innerHTML = `
+      <div class="end-message win">
+        ${msg}
+        <div style="font-size: 1rem; margin-top: 0.5rem; opacity: 0.9;">
+          Final Score: ${score} | Max Streak: ${maxStreak} | Accuracy: ${accuracy}%
+        </div>
+      </div>
+    `;
     showConfetti();
+    playSound('win');
   } else {
     const msg = LOSE_MSGS[Math.floor(Math.random() * LOSE_MSGS.length)];
-    endMsgEl.innerHTML = `<div class="end-message" style="color:var(--gray);">${msg}</div>`;
+    endMsgEl.innerHTML = `
+      <div class="end-message lose">
+        ${msg}
+        <div style="font-size: 1rem; margin-top: 0.5rem; opacity: 0.9;">
+          Final Score: ${score}/${settings.winScore} | Max Streak: ${maxStreak}
+        </div>
+      </div>
+    `;
   }
-}
+};
 
-// --- Reset game ---
-function resetGame() {
+// --- Enhanced Reset Function ---
+const resetGame = () => {
   clearTimeout(spawnInterval);
   clearInterval(timerInterval);
+  
+  document.body.classList.remove('game-active');
+  
   const settings = DIFFICULTY_SETTINGS[currentDifficulty];
   
+  // Reset all state
   score = 0;
   timer = settings.timeLimit;
-  scoreEl.textContent = score;
-  timerEl.textContent = timer;
-  endMsgEl.textContent = '';
-  confettiCanvas.style.display = 'none';
-  startBtn.style.display = '';
-  resetBtn.style.display = 'none';
-  createGrid();
-}
+  totalClicks = 0;
+  hitStreak = 0;
+  maxStreak = 0;
+  gameActive = false;
+  
+  // Batch DOM updates
+  requestAnimationFrame(() => {
+    scoreEl.textContent = score;
+    timerEl.textContent = timer;
+    timerEl.style.color = '';
+    timerEl.style.animation = '';
+    endMsgEl.innerHTML = '';
+    confettiCanvas.style.display = 'none';
+    
+    // Reset buttons
+    startBtn.style.display = 'inline-block';
+    resetBtn.style.display = 'none';
+    
+    createGrid();
+  });
+};
 
-// --- Simple confetti effect ---
-function showConfetti() {
+// --- Enhanced Confetti System ---
+const showConfetti = () => {
   const ctx = confettiCanvas.getContext('2d');
-  confettiCanvas.width = confettiCanvas.offsetWidth;
-  confettiCanvas.height = confettiCanvas.offsetHeight;
-  confettiCanvas.style.display = '';
+  const rect = confettiCanvas.getBoundingClientRect();
+  confettiCanvas.width = rect.width;
+  confettiCanvas.height = rect.height;
+  confettiCanvas.style.display = 'block';
+  
+  const colors = ['#FFD200', '#00AEEF', '#4FC3F7', '#38B2AC', '#FF8C00'];
   let pieces = [];
-  for (let i = 0; i < 60; i++) {
+  
+  // Create more confetti pieces
+  for (let i = 0; i < 80; i++) {
     pieces.push({
       x: Math.random() * confettiCanvas.width,
       y: Math.random() * -confettiCanvas.height,
-      r: 6 + Math.random() * 8,
-      c: Math.random() < 0.5 ? 'var(--yellow)' : 'var(--blue)',
-      v: 2 + Math.random() * 3,
-      dx: (Math.random() - 0.5) * 2
+      r: 4 + Math.random() * 8,
+      c: colors[Math.floor(Math.random() * colors.length)],
+      v: 2 + Math.random() * 4,
+      dx: (Math.random() - 0.5) * 3,
+      rotation: Math.random() * 360,
+      rotationSpeed: (Math.random() - 0.5) * 10
     });
   }
+  
   let frame = 0;
+  const maxFrames = 180; // 3 seconds at 60fps
+  
   function draw() {
-    ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
     pieces.forEach(p => {
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rotation * Math.PI / 180);
       ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, 2 * Math.PI);
+      ctx.arc(0, 0, p.r, 0, 2 * Math.PI);
       ctx.fillStyle = p.c;
-      ctx.globalAlpha = 0.8;
+      ctx.globalAlpha = Math.max(0, 1 - (frame / maxFrames));
       ctx.fill();
-      ctx.globalAlpha = 1;
+      ctx.restore();
     });
   }
+  
   function update() {
     pieces.forEach(p => {
       p.y += p.v;
       p.x += p.dx;
-      if (p.y > confettiCanvas.height + 20) p.y = -10;
+      p.rotation += p.rotationSpeed;
+      if (p.y > confettiCanvas.height + 20) {
+        p.y = -10;
+        p.x = Math.random() * confettiCanvas.width;
+      }
     });
   }
+  
   function loop() {
-    if (frame++ > 60) return; // 1s
+    if (frame++ > maxFrames) {
+      confettiCanvas.style.display = 'none';
+      return;
+    }
     draw();
     update();
     requestAnimationFrame(loop);
   }
+  
   loop();
-}
+};
 
-// --- Event listeners ---
+// --- Event Listeners ---
 startBtn.addEventListener('click', startGame);
 resetBtn.addEventListener('click', resetGame);
 
-// Difficulty selection
+// Enhanced difficulty selection - Optimized for speed
 document.querySelectorAll('.difficulty-btn').forEach(btn => {
   btn.addEventListener('click', (e) => {
-    // Remove active class from all buttons
-    document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
+    const newDifficulty = e.target.dataset.difficulty;
+    if (newDifficulty === currentDifficulty) return; // No change needed
     
-    // Add active class to clicked button
+    // Update active state immediately
+    document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
     e.target.classList.add('active');
     
-    // Update current difficulty
-    currentDifficulty = e.target.dataset.difficulty;
-    
-    // Update instructions
+    // Update difficulty
+    currentDifficulty = newDifficulty;
     const settings = DIFFICULTY_SETTINGS[currentDifficulty];
+    
+    // Update UI immediately without fade effect for speed
     instructionsEl.innerHTML = settings.instructions;
     
     // Update timer display if game not active
@@ -307,8 +546,56 @@ document.querySelectorAll('.difficulty-btn').forEach(btn => {
   });
 });
 
-// --- Initial setup ---
+// --- Keyboard Support ---
+document.addEventListener('keydown', (e) => {
+  if (e.key === ' ' && !gameActive) {
+    e.preventDefault();
+    startGame();
+  } else if (e.key === 'Escape' && gameActive) {
+    resetGame();
+  }
+});
+
+// --- Touch/Click Enhancement ---
+document.addEventListener('touchstart', function() {}, { passive: true });
+
+// --- Initial Setup ---
 updateGridSize();
 createGrid();
-// Set initial instructions
-instructionsEl.innerHTML = DIFFICULTY_SETTINGS[currentDifficulty].instructions;
+// Initialize with default difficulty settings
+const initialSettings = DIFFICULTY_SETTINGS[currentDifficulty];
+instructionsEl.innerHTML = initialSettings.instructions;
+timerEl.textContent = initialSettings.timeLimit;
+
+// Add optimized animations to CSS
+const shakeStyle = document.createElement('style');
+shakeStyle.textContent = `
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+  }
+  
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+  
+  .game-active .main-container {
+    border-color: var(--cw-yellow);
+  }
+  
+  /* Optimize transitions for better performance */
+  .difficulty-btn {
+    will-change: transform, background-color;
+  }
+  
+  .grid-cell {
+    will-change: transform, border-color;
+  }
+  
+  .stat-card {
+    will-change: transform;
+  }
+`;
+document.head.appendChild(shakeStyle);

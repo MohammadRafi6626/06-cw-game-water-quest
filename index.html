@@ -2,46 +2,130 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1.0">
-  <title>Water Quest</title>
-  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Water Quest | charity: water</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+  <!-- Google Fonts - charity: water brand fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Gotham:wght@300;400;500;700&family=Proxima+Nova:wght@300;400;600;700&family=Open+Sans:wght@300;400;600;700&display=swap" rel="stylesheet" crossorigin="anonymous">
+  <!-- Font Awesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" crossorigin="anonymous">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <!-- Placeholder logo, replace src with actual logo if available -->
-      <img src="img/cw_logo.png" alt="charity: water logo">
-      <h1>Water Quest</h1>
-    </div>
-    <div class="difficulty-selector">
-      <h3>Choose Difficulty</h3>
-      <div class="difficulty-buttons">
-        <button class="difficulty-btn active" data-difficulty="easy">Easy</button>
-        <button class="difficulty-btn" data-difficulty="normal">Normal</button>
-        <button class="difficulty-btn" data-difficulty="hard">Hard</button>
-      </div>
-    </div>
-    <div class="game-instructions">
-      <span id="instructions-text">Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br>
-      Score 15+ in 45 seconds to win.</span>
-    </div>
-    <div class="stats">
-      <span>Score: <span class="score" id="score">0</span></span>
-      <span>Time: <span class="timer" id="timer">30</span>s</span>
-    </div>
-    <div id="end-message"></div>
-    <div class="game-grid" id="game-grid"></div>
-    <div style="text-align:center; margin-top:18px;">
-      <button class="start-btn" id="start-btn">Start Game</button>
-      <button class="reset-btn" id="reset-btn" style="display:none;">Reset</button>
-    </div>
-    <canvas class="confetti" id="confetti-canvas" style="display:none;"></canvas>
-    <div class="footer">
-      <img src="img/cw_logo_horizontal.png" alt="charity: water logo">
-      <span>Inspired by charity: water</span>
+  <div class="container-fluid px-2 px-md-4">
+    <div class="main-container">
+      <!-- Header Section -->
+      <header class="game-header text-center mb-4">
+        <div class="d-flex align-items-center justify-content-center mb-3">
+          <img src="img/cw_logo.png" alt="charity: water logo" class="logo me-3">
+          <h1 class="game-title mb-0">Water Quest</h1>
+        </div>
+        <p class="game-subtitle mb-0">Help bring clean water to communities in need</p>
+      </header>
+
+      <!-- Difficulty Selection -->
+      <section class="difficulty-section mb-4">
+        <div class="card border-0 shadow-sm">
+          <div class="card-body p-3 p-md-4">
+            <h3 class="difficulty-title text-center mb-3">
+              <i class="fas fa-trophy me-2"></i>Choose Your Challenge
+            </h3>
+            <div class="row g-2 justify-content-center">
+              <div class="col-4 col-md-auto">
+                <button class="btn difficulty-btn active w-100" data-difficulty="easy">
+                  <i class="fas fa-seedling d-block mb-1"></i>Easy
+                </button>
+              </div>
+              <div class="col-4 col-md-auto">
+                <button class="btn difficulty-btn w-100" data-difficulty="normal">
+                  <i class="fas fa-tint d-block mb-1"></i>Normal
+                </button>
+              </div>
+              <div class="col-4 col-md-auto">
+                <button class="btn difficulty-btn w-100" data-difficulty="hard">
+                  <i class="fas fa-fire d-block mb-1"></i>Hard
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Game Instructions -->
+      <section class="instructions-section mb-4">
+        <div class="alert alert-info border-0 rounded-3" role="alert">
+          <div class="d-flex align-items-start">
+            <i class="fas fa-info-circle me-2 mt-1"></i>
+            <span id="instructions-text">Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br>Score 15+ in 45 seconds to win.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Game Stats -->
+      <section class="stats-section mb-4">
+        <div class="row g-3">
+          <div class="col-6">
+            <div class="stat-card text-center">
+              <div class="stat-icon">
+                <i class="fas fa-star"></i>
+              </div>
+              <div class="stat-label">Score</div>
+              <div class="stat-value" id="score">0</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="stat-card text-center">
+              <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+              </div>
+              <div class="stat-label">Time</div>
+              <div class="stat-value"><span id="timer">45</span>s</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- End Game Message -->
+      <div id="end-message" class="text-center mb-4"></div>
+
+      <!-- Game Grid -->
+      <section class="game-section mb-4">
+        <div class="game-container">
+          <div class="game-grid" id="game-grid"></div>
+        </div>
+      </section>
+
+      <!-- Game Controls -->
+      <section class="controls-section text-center mb-4">
+        <div class="d-flex gap-3 justify-content-center flex-wrap">
+          <button class="btn btn-primary btn-lg game-control-btn" id="start-btn">
+            <i class="fas fa-play me-2"></i>Start Game
+          </button>
+          <button class="btn btn-outline-secondary btn-lg game-control-btn" id="reset-btn" style="display:none;">
+            <i class="fas fa-redo me-2"></i>Reset
+          </button>
+        </div>
+      </section>
+
+      <!-- Confetti Canvas -->
+      <canvas class="confetti-canvas" id="confetti-canvas" style="display:none;"></canvas>
+
+      <!-- Footer -->
+      <footer class="game-footer text-center">
+        <div class="d-flex align-items-center justify-content-center">
+          <img src="img/cw_logo_horizontal.png" alt="charity: water logo" class="footer-logo me-2">
+          <span class="footer-text">Inspired by charity: water</span>
+        </div>
+        <p class="footer-mission mt-2 mb-0">
+          <small>Every game played helps raise awareness for the global water crisis</small>
+        </p>
+      </footer>
     </div>
   </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous" async></script>
   <script src="script.js"></script>
 </body>
 </html>
