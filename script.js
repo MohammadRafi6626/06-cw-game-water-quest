@@ -20,32 +20,32 @@ const BRICK_EMOJI = "🧱";
 // Enhanced Difficulty Settings
 const DIFFICULTY_SETTINGS = {
   easy: {
-    winScore: 15,
-    timeLimit: 45,
-    spawnIntervalMin: 1200,
-    spawnIntervalMax: 2000,
+    winScore: 30,
+    timeLimit: 60,
+    spawnIntervalMin: 1000,
+    spawnIntervalMax: 1800,
     brickChance: 0.15,
-    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br><strong>Score 15+ in 45 seconds to win.</strong>"
+    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br><strong>Score 30+ in 60 seconds to win.</strong>"
   },
   normal: {
-    winScore: 20,
-    timeLimit: 30,
-    spawnIntervalMin: 900,
-    spawnIntervalMax: 1700,
+    winScore: 25,
+    timeLimit: 45,
+    spawnIntervalMin: 800,
+    spawnIntervalMax: 1500,
     brickChance: 0.20,
-    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br><strong>Score 20+ in 30 seconds to win.</strong>"
+    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br><strong>Score 25+ in 45 seconds to win.</strong>"
   },
   hard: {
-    winScore: 25,
-    timeLimit: 20,
-    spawnIntervalMin: 700,
-    spawnIntervalMax: 1300,
+    winScore: 20,
+    timeLimit: 30,
+    spawnIntervalMin: 600,
+    spawnIntervalMax: 1200,
     brickChance: 0.30,
-    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br><strong>Score 25+ in 20 seconds to win.</strong>"
+    instructions: "Tap the yellow jerry cans to collect water! Avoid the brick emoji. <br><strong>Score 20+ in 30 seconds to win.</strong>"
   }
 };
 
-// Enhanced Messages
+// Enhanced Messages - Charity: Water Themed
 const WIN_MSGS = [
   "🎉 You made a difference!",
   "💧 Clean water for all!",
@@ -64,6 +64,16 @@ const LOSE_MSGS = [
   "💯 One more try!"
 ];
 
+// Milestone Messages - Charity: Water Themed
+const MILESTONE_MSGS = [
+  "🚰 New milestone reached! You're bringing water to more communities!",
+  "💙 Personal best achieved! Every drop counts!",
+  "🌟 Incredible progress! You're changing lives with clean water!",
+  "🏆 New record set! Your impact is growing!",
+  "✨ Outstanding achievement! Communities celebrate your efforts!",
+  "🎯 Milestone unlocked! More families have access to clean water!"
+];
+
 // --- Game State ---
 let cols = 3;
 let rows = 3;
@@ -76,8 +86,15 @@ let timerInterval = null;
 let currentDifficulty = 'easy';
 let gameStartTime = 0;
 let totalClicks = 0;
-let hitStreak = 0;
-let maxStreak = 0;
+
+// Milestone System
+let milestones = {
+  easy: parseInt(localStorage.getItem('milestone_easy')) || 0,
+  normal: parseInt(localStorage.getItem('milestone_normal')) || 0,
+  hard: parseInt(localStorage.getItem('milestone_hard')) || 0
+};
+let currentMilestone = 0;
+let newMilestoneAchieved = false;
 
 // --- Preload Audio Assets (Lazy Loading) ---
 const audioAssets = {};
@@ -109,7 +126,7 @@ const playSound = (type) => {
       const s = audioAssets.wrong.cloneNode();
       s.volume = audioAssets.wrong.volume;
       s.play().catch(() => {});
-    } else if ((type === 'win' || type === 'streak') && audioAssets.chime) {
+    } else if (type === 'win' && audioAssets.chime) {
       const s = audioAssets.chime.cloneNode();
       s.volume = audioAssets.chime.volume;
       s.play().catch(() => {});
@@ -218,18 +235,14 @@ const spawnItems = () => {
 };
 
 // --- Enhanced Feedback System ---
-const showFeedback = (cell, val, isStreak = false) => {
+const showFeedback = (cell, val) => {
   const fb = document.createElement('div');
   fb.className = 'feedback';
   
   if (val > 0) {
-    fb.textContent = isStreak && hitStreak > 2 ? `+${val} 🔥` : `+${val}`;
+    fb.textContent = `+${val}`;
     fb.style.color = 'var(--cw-green)';
-    if (isStreak && hitStreak > 2) {
-      playSound('streak');
-    } else {
-      playSound('success');
-    }
+    playSound('success');
   } else {
     fb.textContent = `${val}`;
     fb.classList.add('negative');
@@ -259,18 +272,10 @@ const onCellClick = (e) => {
   }, 150);
   
   if (cell.dataset.type === 'good') {
-    hitStreak++;
-    maxStreak = Math.max(maxStreak, hitStreak);
-    
-    // Bonus points for streaks
-    let points = 1;
-    if (hitStreak >= 5) points = 3;
-    else if (hitStreak >= 3) points = 2;
-    
-    score += points;
-    showFeedback(cell, points, hitStreak > 2);
+    // Simple scoring - 1 point per jerry can
+    score += 1;
+    showFeedback(cell, 1);
   } else {
-    hitStreak = 0;
     score = Math.max(0, score - 1);
     showFeedback(cell, -1);
     
@@ -303,8 +308,8 @@ const startGame = () => {
   score = 0;
   timer = settings.timeLimit;
   totalClicks = 0;
-  hitStreak = 0;
-  maxStreak = 0;
+  currentMilestone = milestones[currentDifficulty];
+  newMilestoneAchieved = false;
   gameStartTime = Date.now();
   
   // Batch DOM updates for better performance
@@ -383,6 +388,13 @@ const endGame = () => {
     cell.setAttribute('tabindex', '-1');
   });
   
+  // Check for new milestone
+  if (score > currentMilestone) {
+    newMilestoneAchieved = true;
+    milestones[currentDifficulty] = score;
+    localStorage.setItem(`milestone_${currentDifficulty}`, score);
+  }
+  
   // Calculate game stats
   const gameTime = (Date.now() - gameStartTime) / 1000;
   const accuracy = totalClicks > 0 ? Math.round((score / totalClicks) * 100) : 0;
@@ -393,24 +405,40 @@ const endGame = () => {
   
   if (isWin) {
     const msg = WIN_MSGS[Math.floor(Math.random() * WIN_MSGS.length)];
+    let milestoneText = '';
+    
+    if (newMilestoneAchieved) {
+      const milestoneMsg = MILESTONE_MSGS[Math.floor(Math.random() * MILESTONE_MSGS.length)];
+      milestoneText = `<div style="color: var(--cw-yellow); font-size: 0.9rem; margin-top: 0.5rem; font-weight: 600;">${milestoneMsg}</div>`;
+    }
+    
     endMsgEl.innerHTML = `
       <div class="end-message win">
         ${msg}
         <div style="font-size: 1rem; margin-top: 0.5rem; opacity: 0.9;">
-          Final Score: ${score} | Max Streak: ${maxStreak} | Accuracy: ${accuracy}%
+          Final Score: ${score} | Personal Best: ${milestones[currentDifficulty]} | Accuracy: ${accuracy}%
         </div>
+        ${milestoneText}
       </div>
     `;
     showConfetti();
     playSound('win');
   } else {
     const msg = LOSE_MSGS[Math.floor(Math.random() * LOSE_MSGS.length)];
+    let milestoneText = '';
+    
+    if (newMilestoneAchieved) {
+      const milestoneMsg = MILESTONE_MSGS[Math.floor(Math.random() * MILESTONE_MSGS.length)];
+      milestoneText = `<div style="color: var(--cw-yellow); font-size: 0.9rem; margin-top: 0.5rem; font-weight: 600;">${milestoneMsg}</div>`;
+    }
+    
     endMsgEl.innerHTML = `
       <div class="end-message lose">
         ${msg}
         <div style="font-size: 1rem; margin-top: 0.5rem; opacity: 0.9;">
-          Final Score: ${score}/${settings.winScore} | Max Streak: ${maxStreak}
+          Final Score: ${score}/${settings.winScore} | Personal Best: ${milestones[currentDifficulty]}
         </div>
+        ${milestoneText}
       </div>
     `;
   }
@@ -429,9 +457,8 @@ const resetGame = () => {
   score = 0;
   timer = settings.timeLimit;
   totalClicks = 0;
-  hitStreak = 0;
-  maxStreak = 0;
   gameActive = false;
+  newMilestoneAchieved = false;
   
   // Batch DOM updates
   requestAnimationFrame(() => {
